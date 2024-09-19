@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .certificate {
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #fff;
+            width: 60%;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .certificate h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .certificate p {
+            margin: 10px 0;
+        }
+        .certificate input[type="text"],
+        .certificate input[type="date"] {
+            width: 90%;
+            padding: 10px;
+            margin: 5px 0 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .certificate input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .certificate input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate">
+        <h1>Certificate of Achievement</h1>
+        <form action="save_certificate.php" method="POST">
+            <p>
+                <label for="certificateNumber">Certificate Number:</label><br>
+                <input type="text" id="certificateNumber" name="certificateNumber" required>
+            </p>
+            <p>
+                <label for="recipientName">Recipient Name:</label><br>
+                <input type="text" id="recipientName" name="recipientName" required>
+            </p>
+            <p>
+                <label for="issueDate">Issue Date:</label><br>
+                <input type="date" id="issueDate" name="issueDate" required>
+            </p>
+            <p>
+                <label for="expiryDate">Expiry Date:</label><br>
+                <input type="date" id="expiryDate" name="expiryDate" required>
+            </p>
+            <p>
+                <label for="certificateType">Certificate Type:</label><br>
+                <input type="text" id="certificateType" name="certificateType" required>
+            </p>
+            <input type="submit" value="Save Certificate">
+        </form>
+    </div>
+</body>
+</html>
