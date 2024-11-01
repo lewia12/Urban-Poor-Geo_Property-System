@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lot Plotter</title>
+      <!-- Bootstrap CSS -->
+      <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh; /* Set body to full height */
+        }
+        #sidebar {
+            width: 300px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ddd;
+            transition: all 0.3s;
+            overflow-y: auto; /* Enable vertical scrolling */
+            height: 100vh; /* Full height for sidebar */
+        }
+        #sidebar.hidden {
+            width: 0;
+            padding: 0;
+            border: none;
+        }
+        #map {
+            flex-grow: 1;
+            height: 100vh; /* Full height for map */
+        }
+        #editorButton {
+            margin-top: 20px;
+        }
+        button {
+            margin: 5px 0;
+        }
+        .toggle-button {
+            position: absolute;
+            top: 25px;
+            right: 20px; /* Adjusted to be 20px from the right */
+            z-index: 1000;
+        }
+        #lineInputs label {
+            display: block;
+            margin: 10px 10px; /* Add spacing between line inputs */
+        }
+        #lineInputs select, #lineInputs input {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar" class="hidden">
+        <h1>Lot Plotter</h1>
+        <form id="plotForm">
+            <label>Starting Latitude: <input type="number" step="any" id="startLat" required></label><br>
+            <label>Starting Longitude: <input type="number" step="any" id="startLng" required></label><br>
+            <label>Number of Lines: <input type="number" id="lineCount" value="1" min="1" required></label><br>
+            <div id="lineInputs"></div>
+            <button type="submit">Plot Lot</button>
+        </form>
+        <button id="closeEditorButton">Close Editor</button>
+
+        <!-- New inputs for folder selection and filename -->
+        <label>Folder Name: <input type="text" id="folderName" placeholder="Enter folder name" required></label><br>
+        <button id="saveToJsonButton">Save to JSON</button> <!-- New save button -->
+
+        <!-- New inputs for District, Barangay, HOA -->
+        <h2>Save Polygon</h2>
+        <label>District: <input type="text" id="district" required></label><br>
+        <label>Barangay: <input type="text" id="barangay" required></label><br>
+        <label>HOA: <input type="text" id="hoa" required></label><br>
+        <button id="savePolygonButton">Save Polygon</button>
+    </div>
+
+    <button id="toggleSidebar" class="toggle-button">Open Editor</button>
+
+    <div id="map"></div>
+
+ <!-- Bootstrap JS and dependencies -->
+ <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+ <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+    <script>
+        const form = document.getElementById('plotForm');
+        const lineCountInput = document.getElementById('lineCount');
+        const lineInputs = document.getElementById('lineInputs');
+        const sidebar = document.getElementById('sidebar');
+        const toggleButton = document.getElementById('toggleSidebar');
+        const closeEditorButton = document.getElementById('closeEditorButton');
+        const saveToJsonButton = document.getElementById('saveToJsonButton'); // Save button
+        const folderNameInput = document.getElementById('folderName'); // Folder name input
+        const savePolygonButton = document.getElementById('savePolygonButton'); // Save polygon button
+        const districtInput = document.getElementById('district'); // District input
+        const barangayInput = document.getElementById('barangay'); // Barangay input
+        const hoaInput = document.getElementById('hoa'); // HOA input
+        let map, drawnItems;
+
+        // Initialize map with specific coordinates
+        function initMap() {
+            map = L.map('map', {
+                maxZoom: 22
+            }).setView([12.066731, 124.594506], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 22
+            }).addTo(map);
+
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            // Enable Leaflet Geoman
+            map.pm.addControls({
+                position: 'topright',
+                drawCircle: false,
+                drawMarker: true,
+                drawPolyline: true,
+                drawPolygon: true,
+                editMode: true,
+                dragMode: true,
+                removalMode: true
+            });
+
+            // Event listener for polygon clicks
+            drawnItems.on('click', function (e) {
+                const layer = e.layer;
+                layer.bindPopup("Coordinates: " + layer.getLatLngs().map(coord => coord.toString()).join("<br>"));
+                layer.openPopup();
+            });
+        }
+
+        // Dynamically add input fields for metes and bounds description
+        lineCountInput.addEventListener('input', () => {
+            let count = lineCountInput.value;
+            lineInputs.innerHTML = ''; // Clear previous inputs
+            for (let i = 1; i <= count; i++) {
+                lineInputs.innerHTML += 
+                    `<label>Line ${i} NS: 
+                        <select id="ns_${i}" required>
+                            <option value="N">N</option>
+                            <option value="S">S</option>
+                        </select>
+                        Degrees: <input type="number" step="any" id="deg_${i}" required>
+                        Minutes: <input type="number" step="any" id="min_${i}" required>
+                        EW: 
+                        <select id="ew_${i}" required>
+                            <option value="E">E</option>
+                            <option value="W">W</option>
+                        </select>
+                        Distance (m): <input type="number" step="any" id="distance_${i}" required>
+                    </label>`;
+            }
+        });
+
+        form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const startLat = parseFloat(document.getElementById('startLat').value);
+    const startLng = parseFloat(document.getElementById('startLng').value);
+    const lines = [];
+
+    // Gather technical description for each line
+    for (let i = 1; i <= lineCountInput.value; i++) {
+        lines.push({
+            ns: document.getElementById(`ns_${i}`).value,
+            deg: parseFloat(document.getElementById(`deg_${i}`).value),
+            min: parseFloat(document.getElementById(`min_${i}`).value),
+            ew: document.getElementById(`ew_${i}`).value,
+            distance: parseFloat(document.getElementById(`distance_${i}`).value)
+        });
+    }
+
+    // Plot the lot on the map
+    map.setView([startLat, startLng], 15);
+
+    // Calculate coordinates based on technical description
+    let latLngs = [[startLat, startLng]];
+    let currentLat = startLat;
+    let currentLng = startLng;
+
+    lines.forEach(line => {
+        // Convert DMS (Degrees and Minutes) to decimal degrees
+        const angleInDecimal = line.deg + (line.min / 60);
+        const distance = line.distance; // Distance in meters
+
+        // Convert angle to radians
+        const angleInRadians = (angleInDecimal * Math.PI) / 180;
+
+        // Calculate new latitude and longitude
+        const deltaLat = distance * Math.cos(angleInRadians) / 111320; // Rough conversion (m to degrees)
+        const deltaLng = distance * Math.sin(angleInRadians) / (111320 * Math.cos((currentLat * Math.PI) / 180)); // Rough conversion (m to degrees)
+
+        // Adjust currentLat and currentLng based on NS and EW
+        currentLat += (line.ns === 'N' ? deltaLat : -deltaLat);
+        currentLng += (line.ew === 'E' ? deltaLng : -deltaLng);
+
+        latLngs.push([currentLat, currentLng]);
+    });
+
+    // Automatically close the polygon by connecting the last point to the first
+    if (latLngs[0][0] !== latLngs[latLngs.length - 1][0] || latLngs[0][1] !== latLngs[latLngs.length - 1][1]) {
+        latLngs.push(latLngs[0]); // Add the starting point as the last point
+    }
+
+    // Draw polygon on the map
+    const polygon = L.polygon(latLngs, { color: 'blue' }).addTo(map);
+    drawnItems.addLayer(polygon); // Add polygon to drawnItems for later access
+
+    // Clear the form and reset the input fields
+    form.reset();
+    lineInputs.innerHTML = ''; // Clear input fields
+});
+
+        // Toggle sidebar visibility
+        toggleButton.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+            toggleButton.textContent = sidebar.classList.contains('hidden') ? 'Open Editor' : 'Close Editor';
+        });
+
+        closeEditorButton.addEventListener('click', () => {
+            sidebar.classList.add('hidden');
+            toggleButton.textContent = 'Open Editor';
+        });
+
+        // Save to JSON button functionality
+        saveToJsonButton.addEventListener('click', () => {
+            const folderName = folderNameInput.value.trim();
+            if (folderName) {
+                const data = []; // Collect data to save
+                drawnItems.eachLayer(function (layer) {
+                    if (layer instanceof L.Polygon || layer instanceof L.Polyline) {
+                        data.push(layer.toGeoJSON()); // Collect GeoJSON for each layer
+                    }
+                });
+
+                // Convert data to JSON
+                const jsonData = JSON.stringify(data, null, 2);
+                // Save jsonData to the specified folder (handle on server-side)
+                alert("Data saved to " + folderName + " folder (this part needs server-side implementation).");
+                // Here, implement logic to send jsonData to your server if needed
+            } else {
+                alert("Please enter a valid folder name.");
+            }
+        });
+
+        // Save polygon button functionality
+        savePolygonButton.addEventListener('click', () => {
+            const district = districtInput.value.trim();
+            const barangay = barangayInput.value.trim();
+            const hoa = hoaInput.value.trim();
+            const polygons = [];
+
+            drawnItems.eachLayer(function (layer) {
+                if (layer instanceof L.Polygon) {
+                    polygons.push(layer.toGeoJSON()); // Collect GeoJSON for each polygon
+                }
+            });
+
+            if (polygons.length > 0) {
+                // Send data to the server
+                fetch('save_polygon.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ district, barangay, hoa, polygons })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Polygons saved successfully.");
+                    } else {
+                        alert("Error saving polygons: " + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert("Error: " + error);
+                });
+            } else {
+                alert("No polygons to save.");
+            }
+        });
+
+        // Initialize the map on page load
+        window.onload = initMap;
+    </script>
+</body>
+</html>

@@ -1,3 +1,14 @@
+<?php
+session_start(); // Start the session
+include 'dbconnection.php';
+
+// Check if the user is logged in
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+    header('Location: login.php'); // Redirect to login page if not logged in
+    exit();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,17 +18,18 @@
     <link rel="stylesheet" href="recordstyle.css">
 </head>
 <body>
-    <div class="menu-bar">
-        <div class="menu-icon">
-            <!-- You can add menu icon content here if needed -->
-        </div>
-        <h1>Records</h1>
-        <div>
-        <button class="menu-button" onclick="window.location.href='index.php'">Home</button>
-        <button class="menu-button" onclick="window.location.href='blacklist.php'">Blacklist</button>
-
-        </div>
-    </div>
+<header>
+        <nav class="navbar">
+            <div class="logo">
+                <a href="#">Alpha Build</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.php">Home</a></li>
+                <li><a href="map.php">Map</a></li>
+            </ul>
+        </nav>
+    </header>
+   
 
     <div class="records-container">
         <div class="records-list">
@@ -25,9 +37,6 @@
             <h2>Home Owners Associations</h2>
             <ul>
                 <?php
-                // Include the database connection file
-                include 'dbconnection.php';
-
                 // SQL query to fetch HOA names
                 $sql = "SELECT id, name FROM hoas";  // Assuming there is an 'id' column
                 $result = $conn->query($sql);

@@ -1,16 +1,27 @@
 <?php
+session_start(); // Start the session
 include 'dbconnection.php'; // Assuming this file contains your DB connection
+
+// Check if the user is logged in and has admin role
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] !== 'admin') {
+    header('Location: login.php'); // Redirect to login page
+    exit();
+}
 
 // Handle user creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
-    $new_username = $_POST['username'];
+    $employeeid = $_POST['employeeid'];
+    $firstname = $_POST['firstname'];
+    $lastname = $_POST['lastname'];
+    $dob = $_POST['dob'];
+    $role = $_POST['role']; // Role should be either 'employee' or 'admin'
     $new_password = $_POST['password']; // Remember to hash passwords for production
 
     // Hash the password before storing it
     $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
     // Insert new user into the database
-    $sql = "INSERT INTO users (username, password, created_at) VALUES ('$new_username', '$hashed_password', NOW())";
+    $sql = "INSERT INTO users (employeeid, firstname, lastname, dob, password, role, created_at) VALUES ('$employeeid', '$firstname', '$lastname', '$dob', '$hashed_password', '$role', NOW())";
     if ($conn->query($sql) === TRUE) {
         echo "New user created successfully!";
     } else {
@@ -32,11 +43,11 @@ if (isset($_GET['delete_user'])) {
 }
 
 // Fetch all users and their last login time
-$sql = "SELECT id, username, last_login_time, created_at FROM users";
+$sql = "SELECT id, employeeid, firstname, lastname, dob, last_login_time, created_at, role FROM users";
 $result = $conn->query($sql);
 
 // Fetch login history sorted by most recent login
-$loginHistorySql = "SELECT username, last_login_time FROM users ORDER BY last_login_time DESC";
+$loginHistorySql = "SELECT employeeid, last_login_time FROM users ORDER BY last_login_time DESC";
 $loginHistoryResult = $conn->query($loginHistorySql);
 ?>
 
@@ -47,7 +58,6 @@ $loginHistoryResult = $conn->query($loginHistorySql);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Users</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Optional: Include a CSS framework like Bootstrap for easier modal and styling support -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
@@ -90,8 +100,27 @@ $loginHistoryResult = $conn->query($loginHistorySql);
                     <div class="modal-body">
                         <form method="POST" action="">
                             <div class="form-group">
-                                <label for="username">Username</label>
-                                <input type="text" class="form-control" name="username" id="username" required>
+                                <label for="employee_id">Employee ID</label>
+                                <input type="text" class="form-control" name="employeeid" id="employeeid" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="firstname">First Name</label>
+                                <input type="text" class="form-control" name="firstname" id="firstname" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastname">Last Name</label>
+                                <input type="text" class="form-control" name="lastname" id="lastname" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="dob">Date of Birth</label>
+                                <input type="date" class="form-control" name="dob" id="dob" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="role">Role</label>
+                                <select class="form-control" name="role" id="role" required>
+                                    <option value="employees">Employee</option>
+                                    <option value="admin">Admin</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label for="password">Password</label>
@@ -109,7 +138,11 @@ $loginHistoryResult = $conn->query($loginHistorySql);
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Username</th>
+                    <th>Employee ID</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Date of Birth</th>
+                    <th>Role</th>
                     <th>Last Login Time</th>
                     <th>Account Created At</th>
                     <th>Actions</th>
@@ -119,7 +152,11 @@ $loginHistoryResult = $conn->query($loginHistorySql);
                 <?php if ($result->num_rows > 0): ?>
                     <?php while($row = $result->fetch_assoc()): ?>
                         <tr>
-                            <td><?= htmlspecialchars($row['username']) ?></td>
+                            <td><?= htmlspecialchars($row['employeeid']) ?></td>
+                            <td><?= htmlspecialchars($row['firstname']) ?></td>
+                            <td><?= htmlspecialchars($row['lastname']) ?></td>
+                            <td><?= htmlspecialchars($row['dob']) ?></td>
+                            <td><?= htmlspecialchars($row['role']) ?></td>
                             <td><?= htmlspecialchars($row['last_login_time']) ?></td>
                             <td><?= htmlspecialchars($row['created_at']) ?></td>
                             <td>
@@ -129,7 +166,7 @@ $loginHistoryResult = $conn->query($loginHistorySql);
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="4">No users found.</td>
+                        <td colspan="8">No users found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -140,7 +177,7 @@ $loginHistoryResult = $conn->query($loginHistorySql);
         <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Username</th>
+                    <th>Employee ID</th>
                     <th>Last Login Time</th>
                 </tr>
             </thead>
@@ -148,7 +185,7 @@ $loginHistoryResult = $conn->query($loginHistorySql);
                 <?php if ($loginHistoryResult->num_rows > 0): ?>
                     <?php while($history = $loginHistoryResult->fetch_assoc()): ?>
                         <tr>
-                            <td><?= htmlspecialchars($history['username']) ?></td>
+                            <td><?= htmlspecialchars($history['employeeid']) ?></td>
                             <td><?= htmlspecialchars($history['last_login_time']) ?></td>
                         </tr>
                     <?php endwhile; ?>
