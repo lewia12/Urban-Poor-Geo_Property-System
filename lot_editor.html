@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lot Plotter</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+        #sidebar {
+            width: 300px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            height: 100vh;
+        }
+        #sidebar.hidden {
+            width: 0;
+            padding: 0;
+            border: none;
+        }
+        #map {
+            flex-grow: 1;
+            height: 100vh;
+        }
+        .toggle-button {
+            position: absolute;
+            top: 25px;
+            right: 100px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar" class="hidden">
+    <h1>Lot Plotter</h1>
+    <!-- Form for technical description -->
+    <form id="plotForm">
+        <label>Starting Latitude: <input type="number" step="any" id="startLat" required></label><br>
+        <label>Starting Longitude: <input type="number" step="any" id="startLng" required></label><br>
+        <label>Number of Lines: <input type="number" id="lineCount" value="1" min="1" required></label><br>
+        <div id="lineInputs"></div>
+        <button type="submit">Plot Lot</button>
+    </form>
+    <button id="closeEditorButton">Close Editor</button>
+
+    <!-- New inputs for District, Barangay, HOA, and Lot No -->
+    <h2>Save Polygon</h2>
+    <label>District: <input type="text" id="district" required></label><br>
+    <label>Barangay: <input type="text" id="barangay" required></label><br>
+    <label>HOA: <input type="text" id="hoa" required></label><br>
+    <label>Lot No: <input type="text" id="lot_no" required></label><br>
+    <button id="savePolygonButton">Save Polygon</button>
+</div>
+
+<button id="toggleSidebar" class="toggle-button">Open Editor</button>
+
+<div id="map"></div>
+
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    const form = document.getElementById('plotForm');
+    const lineCountInput = document.getElementById('lineCount');
+    const lineInputs = document.getElementById('lineInputs');
+    const sidebar = document.getElementById('sidebar');
+    const toggleButton = document.getElementById('toggleSidebar');
+    const closeEditorButton = document.getElementById('closeEditorButton');
+    const savePolygonButton = document.getElementById('savePolygonButton');
+    const districtInput = document.getElementById('district');
+    const barangayInput = document.getElementById('barangay');
+    const hoaInput = document.getElementById('hoa');
+    const lotNoInput = document.getElementById('lot_no');
+
+    let map, drawnItems;
+
+    function initMap() {
+        map = L.map('map').setView([12.066731, 124.594506], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 22
+        }).addTo(map);
+
+        drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        map.pm.addControls({
+            position: 'topright',
+            drawCircle: false,
+            drawMarker: true,
+            drawPolyline: true,
+            drawPolygon: true,
+            editMode: true,
+            dragMode: true,
+            removalMode: true
+        });
+    }
+
+    // Dynamically add input fields for metes and bounds description
+    lineCountInput.addEventListener('input', () => {
+        let count = lineCountInput.value;
+        lineInputs.innerHTML = '';
+        for (let i = 1; i <= count; i++) {
+            lineInputs.innerHTML += 
+                `<label>Line ${i} NS: 
+                    <select id="ns_${i}" required>
+                        <option value="N">N</option>
+                        <option value="S">S</option>
+                    </select>
+                    Degrees: <input type="number" step="any" id="deg_${i}" required>
+                    Minutes: <input type="number" step="any" id="min_${i}" required>
+                    EW: 
+                    <select id="ew_${i}" required>
+                        <option value="E">E</option>
+                        <option value="W">W</option>
+                    </select>
+                    Distance (m): <input type="number" step="any" id="distance_${i}" required>
+                </label>`;
+        }
+    });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const startLat = parseFloat(document.getElementById('startLat').value);
+        const startLng = parseFloat(document.getElementById('startLng').value);
+        const lines = [];
+
+        for (let i = 1; i <= lineCountInput.value; i++) {
+            lines.push({
+                ns: document.getElementById(`ns_${i}`).value,
+                deg: parseFloat(document.getElementById(`deg_${i}`).value),
+                min: parseFloat(document.getElementById(`min_${i}`).value),
+                ew: document.getElementById(`ew_${i}`).value,
+                distance: parseFloat(document.getElementById(`distance_${i}`).value)
+            });
+        }
+
+        map.setView([startLat, startLng], 15);
+
+        let latLngs = [[startLat, startLng]];
+        let currentLat = startLat;
+        let currentLng = startLng;
+
+        lines.forEach(line => {
+            const angleInDecimal = line.deg + (line.min / 60);
+            const distance = line.distance;
+            const angleInRadians = (angleInDecimal * Math.PI) / 180;
+            const deltaLat = distance * Math.cos(angleInRadians) / 111320;
+            const deltaLng = distance * Math.sin(angleInRadians) / (111320 * Math.cos((currentLat * Math.PI) / 180));
+
+            currentLat += (line.ns === 'N' ? deltaLat : -deltaLat);
+            currentLng += (line.ew === 'E' ? deltaLng : -deltaLng);
+
+            latLngs.push([currentLat, currentLng]);
+        });
+
+        if (latLngs[0][0] !== latLngs[latLngs.length - 1][0] || latLngs[0][1] !== latLngs[latLngs.length - 1][1]) {
+            latLngs.push(latLngs[0]);
+        }
+
+        const polygon = L.polygon(latLngs, { color: 'blue' }).addTo(map);
+        drawnItems.addLayer(polygon);
+        form.reset();
+        lineInputs.innerHTML = '';
+    });
+
+    toggleButton.addEventListener('click', () => {
+        sidebar.classList.toggle('hidden');
+        toggleButton.textContent = sidebar.classList.contains('hidden') ? 'Open Editor' : 'Close Editor';
+    });
+
+    closeEditorButton.addEventListener('click', () => {
+        sidebar.classList.add('hidden');
+        toggleButton.textContent = 'Open Editor';
+    });
+
+    savePolygonButton.addEventListener('click', () => {
+        const district = districtInput.value.trim();
+        const barangay = barangayInput.value.trim();
+        const hoa = hoaInput.value.trim();
+        const lotNo = lotNoInput.value.trim();
+        const polygons = [];
+
+        drawnItems.eachLayer(function (layer) {
+            if (layer instanceof L.Polygon) {
+                polygons.push(layer.toGeoJSON());
+            }
+        });
+
+        if (polygons.length > 0) {
+            fetch('save_polygon.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ district, barangay, hoa, lot_no: lotNo, polygons })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Polygons saved successfully.");
+                } else {
+                    alert("Error saving polygons: " + data.message);
+                }
+            })
+            .catch(error => {
+                alert("Error: " + error);
+            });
+        } else {
+            alert("No polygons to save.");
+        }
+    });
+
+    window.onload = initMap;
+</script>
+</body>
+</html>

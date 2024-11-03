@@ -1,0 +1,151 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+}
+
+header {
+    background-color: #333;
+    padding: 10px 0;
+    color: white;
+    text-align: center;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.logo a {
+    color: white;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.nav-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+.nav-links li {
+    margin-left: 20px;
+}
+
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    padding: 5px 10px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nav-links a:hover {
+    background-color: #555;
+    border-radius: 5px;
+    color: #fff;
+}
+
+.menu-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #6699cc;
+    padding: 10px 20px;
+}
+
+.menu-bar h1 {
+    color: #fff;
+    margin: 0;
+}
+
+.menu-button {
+    background-color: #555;
+    color: #fff;
+    padding: 10px 15px;
+    margin-left: 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.menu-button:hover {
+    background-color: #444;
+}
+
+.records-container {
+    display: flex;
+    margin: 20px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+}
+
+.search-bar {
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.records-list {
+    width: 30%;
+    border-right: 1px solid #ddd;
+}
+
+.records-list ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.records-list li {
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.records-list li:hover {
+    background-color: #f0f0f0;
+}
+
+.records-list li.selected {
+    background-color: #b3cde0;
+}
+
+.record-details {
+    width: 70%;
+    padding: 20px;
+}
+
+/* Button Styles */
+.hoa-button {
+    background-color: #007bff; /* Primary color */
+    color: white; /* Text color */
+    border: none; /* No border */
+    padding: 10px 15px; /* Padding for better size */
+    margin: 5px 0; /* Space between buttons */
+    border-radius: 5px; /* Rounded corners */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition */
+    width: 100%; /* Full width */
+    font-size: 16px; /* Font size */
+}
+
+.hoa-button:hover {
+    background-color: #0056b3; /* Darker shade on hover */
+    transform: translateY(-2px); /* Slight lift on hover */
+}
+
+.hoa-button:active {
+    background-color: #004494; /* Even darker shade on click */
+    transform: translateY(1px); /* Slight push down effect */
+}
