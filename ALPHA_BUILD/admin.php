@@ -3,10 +3,12 @@ session_start(); // Start the session
 include 'dbconnection.php'; // Assuming this file contains your DB connection
 
 // Check if the user is logged in and has admin role
-if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] !== 'admin') {
+if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION['role'] !== 'Admin') {
     header('Location: login.php'); // Redirect to login page
     exit();
 }
+
+$message = ""; // Message to show success or error feedback
 
 // Handle user creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
@@ -14,32 +16,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
     $firstname = $_POST['firstname'];
     $lastname = $_POST['lastname'];
     $dob = $_POST['dob'];
-    $role = $_POST['role']; // Role should be either 'employee' or 'admin'
-    $new_password = $_POST['password']; // Remember to hash passwords for production
+    $role = $_POST['role'];
+    $new_password = $_POST['password'];
 
     // Hash the password before storing it
     $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
 
-    // Insert new user into the database
-    $sql = "INSERT INTO users (employeeid, firstname, lastname, dob, password, role, created_at) VALUES ('$employeeid', '$firstname', '$lastname', '$dob', '$hashed_password', '$role', NOW())";
-    if ($conn->query($sql) === TRUE) {
-        echo "New user created successfully!";
+    // Use prepared statements for security
+    $stmt = $conn->prepare("INSERT INTO users (employeeid, firstname, lastname, dob, password, role, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+    $stmt->bind_param("ssssss", $employeeid, $firstname, $lastname, $dob, $hashed_password, $role);
+    
+    if ($stmt->execute()) {
+        $message = "New user created successfully!";
     } else {
-        echo "Error: " . $conn->error;
+        $message = "Error: " . $stmt->error;
     }
+    $stmt->close();
 }
 
 // Handle user deletion
 if (isset($_GET['delete_user'])) {
     $user_id = $_GET['delete_user'];
 
-    // Delete the user from the database
-    $sql = "DELETE FROM users WHERE id = '$user_id'";
-    if ($conn->query($sql) === TRUE) {
-        echo "User deleted successfully!";
+    // Use prepared statements for security
+    $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+
+    if ($stmt->execute()) {
+        $message = "User deleted successfully!";
     } else {
-        echo "Error: " . $conn->error;
+        $message = "Error: " . $stmt->error;
     }
+    $stmt->close();
 }
 
 // Fetch all users and their last login time
@@ -74,13 +82,19 @@ $loginHistoryResult = $conn->query($loginHistorySql);
                 <li class="nav-item">
                     <a class="nav-link" href="index.php">Home</a>
                 </li>
-                <!-- Add more links here if needed -->
             </ul>
         </div>
     </nav>
     
     <div class="container mt-5">
         <h1>User Management</h1>
+
+        <!-- Feedback Message -->
+        <?php if ($message): ?>
+            <div class="alert alert-info" role="alert">
+                <?= htmlspecialchars($message) ?>
+            </div>
+        <?php endif; ?>
 
         <!-- Button to trigger the Create User modal -->
         <button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#createUserModal">
@@ -100,8 +114,8 @@ $loginHistoryResult = $conn->query($loginHistorySql);
                     <div class="modal-body">
                         <form method="POST" action="">
                             <div class="form-group">
-                                <label for="employee_id">Employee ID</label>
-                                <input type="text" class="form-control" name="employeeid" id="employeeid" required>
+                                <label for="employeeid">Employee ID</label>
+                                <input type="text" class="form-control" name="employeeid" id="employeeid" required pattern="\d+" title="Employee ID should only contain numbers">
                             </div>
                             <div class="form-group">
                                 <label for="firstname">First Name</label>
@@ -118,7 +132,7 @@ $loginHistoryResult = $conn->query($loginHistorySql);
                             <div class="form-group">
                                 <label for="role">Role</label>
                                 <select class="form-control" name="role" id="role" required>
-                                    <option value="employees">Employee</option>
+                                    <option value="employee">Employee</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>
@@ -197,6 +211,5 @@ $loginHistoryResult = $conn->query($loginHistorySql);
             </tbody>
         </table>
     </div>
-
 </body>
 </html>
