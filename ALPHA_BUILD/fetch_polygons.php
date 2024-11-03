@@ -14,7 +14,7 @@ try {
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // Prepare the SQL query with filters based on the selected options
-    $query = "SELECT id, district, barangay, hoa, geojson FROM polygons WHERE 1=1";
+    $query = "SELECT id, district, barangay, hoa, geojson, lot_no FROM polygons WHERE 1=1";
     $filters = [];
 
     // Add filters based on query parameters

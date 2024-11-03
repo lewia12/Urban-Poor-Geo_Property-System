@@ -1,29 +1,34 @@
 <?php
-// save_polygon.php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "hoa_records";
 
-// Get the raw POST data
-$data = json_decode(file_get_contents('php://input'), true);
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-// Validate input data
-if (!isset($data['district']) || !isset($data['barangay']) || !isset($data['hoa']) || !isset($data['polygons'])) {
-    echo json_encode(['success' => false, 'message' => 'Invalid input']);
-    exit;
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 
-// Database connection
-try {
-    $pdo = new PDO('mysql:host=localhost;dbname=gis_system', 'root', ''); // Using 'root' as the username
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$data = json_decode(file_get_contents("php://input"), true);
 
-    // Prepare insert statement
-    $stmt = $pdo->prepare("INSERT INTO polygons (district, barangay, hoa, geojson) VALUES (?, ?, ?, ?)");
+$district = $conn->real_escape_string($data['district']);
+$barangay = $conn->real_escape_string($data['barangay']);
+$hoa = $conn->real_escape_string($data['hoa']);
+$lot_no = $conn->real_escape_string($data['lot_no']);
+$polygons = $data['polygons'];
 
-    foreach ($data['polygons'] as $polygon) {
-        $stmt->execute([$data['district'], $data['barangay'], $data['hoa'], json_encode($polygon)]);
+$response = ['success' => true];
+foreach ($polygons as $polygon) {
+    $geojson = json_encode($polygon);
+    $sql = "INSERT INTO polygons (district, barangay, hoa, lot_no, geojson) VALUES ('$district', '$barangay', '$hoa', '$lot_no', '$geojson')";
+    if (!$conn->query($sql)) {
+        $response = ['success' => false, 'message' => $conn->error];
+        break;
     }
-
-    echo json_encode(['success' => true]);
-} catch (PDOException $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
+
+$conn->close();
+
+echo json_encode($response);
 ?>

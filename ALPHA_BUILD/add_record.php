@@ -1,33 +1,49 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 include 'dbconnection.php';
 
+// Check if the form was submitted and the required data is present
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Get form data, ensuring HOA value is retrieved from the form
+    $hoa = isset($_POST['hoa']) ? $_POST['hoa'] : null; // HOA value from the form
     $name = $_POST['name'];
     $member_id = $_POST['member_id'];
-    $hoa_id = $_POST['hoa_id'];
+    $address = $_POST['address'];
+    $phone_number = $_POST['phone_number'];
+    $email = $_POST['email'];
+    $membership_date = $_POST['membership_date'];
+    $status = $_POST['status'];
+    $role = $_POST['role'];
+    $notes = $_POST['notes'];
+    $lot_no = $_POST['lot_no'];
 
-    // Check if member is blacklisted
-    $stmt = $conn->prepare("SELECT * FROM blacklist WHERE member_id = ? AND hoa_id = ?");
-    $stmt->bind_param("ii", $member_id, $hoa_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // Validate HOA
+    if ($hoa === null || empty($hoa)) {
+        // Respond with an error message if HOA is not set
+        echo json_encode(['error' => 'Error: HOA cannot be null or empty']);
+        exit;
+    }
 
-    if ($result->num_rows > 0) {
-        echo "This member is blacklisted and cannot be added.";
+    // Prepare and execute the insert statement
+    $stmt = $conn->prepare("INSERT INTO member (name, member_id, address, phone_number, email, membership_date, status, role, notes, hoa, lot_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssssssss", $name, $member_id, $address, $phone_number, $email, $membership_date, $status, $role, $notes, $hoa, $lot_no);
+
+    if ($stmt->execute()) {
+        // Respond with a success message
+        echo json_encode(['success' => true, 'hoa' => $hoa]);
     } else {
-        // If not blacklisted, proceed to add member
-        $stmt = $conn->prepare("INSERT INTO members (name, member_id, hoa_id) VALUES (?, ?, ?)");
-        $stmt->bind_param("ssi", $name, $member_id, $hoa_id);
-
-        if ($stmt->execute()) {
-            echo "New member added successfully";
-            header("Location: hoarecords.php?id=" . $hoa_id);
-        } else {
-            echo "Error: " . $stmt->error;
-        }
+        // Respond with an error message
+        echo json_encode(['error' => 'Error: ' . $stmt->error]);
     }
 
     $stmt->close();
-    $conn->close();
+} else {
+    // Handle the case where the request is not a POST
+    echo json_encode(['error' => 'Invalid request']);
 }
+
+$conn->close();
 ?>
