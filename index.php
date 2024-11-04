@@ -51,12 +51,12 @@ if (isset($_SESSION['user_id'])) {
     <header>
         <nav class="navbar">
             <div class="logo">
-                <a href="#">City Housing Logo</a>
+            <img src="chdo.png" alt="City Housing Logo" style="width: 50px; height: auto; border-radius: 70%;">
             </div>
             <ul class="nav-links">
                 <li><a href="records.php">Records</a></li>
                 <li><a href="map.php">Map</a></li>
-                <?php if ($role === 'admin'): // Only show the admin link if the user is an admin ?>
+                <?php if ($role === 'Admin'): // Only show the admin link if the user is an admin ?>
                     <li><a href="admin.php">Admin Panel</a></li>
                 <?php endif; ?>
                 <li class="user-info">Welcome, <?= htmlspecialchars($username) ?> <a href="logout.php">Logout</a></li>

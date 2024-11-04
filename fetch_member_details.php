@@ -3,13 +3,20 @@
 
 include 'dbconnection.php';
 
-// Check if member ID is provided
-if (isset($_GET['id'])) {
-    $member_id = intval($_GET['id']);
+// Check if lot_no is provided (assuming QR code is tied to lot_no)
+if (isset($_GET['lot_no'])) {
+    $lot_no = $_GET['lot_no'];
     
-    // Prepare and execute SQL query to fetch member details
-    $stmt = $conn->prepare("SELECT name, member_id, address, phone_number, email, membership_date, status, role, notes FROM member WHERE id = ?");
-    $stmt->bind_param("i", $member_id);
+    // Prepare and execute SQL query to fetch member details, including lot_no and QR code
+    $stmt = $conn->prepare("SELECT name, member_id, address, phone_number, email, membership_date, status, role, notes, lot_no, qr_code FROM member WHERE lot_no = ?");
+    
+    if ($stmt === false) {
+        // Handle prepare statement error
+        echo json_encode(["error" => "Database prepare error: " . $conn->error]);
+        exit;
+    }
+
+    $stmt->bind_param("s", $lot_no);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -27,7 +34,9 @@ if (isset($_GET['id'])) {
             "membership_date" => htmlspecialchars($row['membership_date']),
             "status" => htmlspecialchars($row['status']),
             "role" => htmlspecialchars($row['role']),
-            "notes" => htmlspecialchars($row['notes'])
+            "notes" => htmlspecialchars($row['notes']),
+            "lot_no" => htmlspecialchars($row['lot_no']),
+            "qr_code" => base64_encode($row['qr_code']) // Encode QR code for JSON output
         ];
 
         // Output member details as JSON
@@ -38,7 +47,7 @@ if (isset($_GET['id'])) {
 
     $stmt->close();
 } else {
-    echo json_encode(["error" => "No member ID provided"]);
+    echo json_encode(["error" => "No lot number provided"]);
 }
 
 // Close the database connection

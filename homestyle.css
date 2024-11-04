@@ -25,6 +25,13 @@ header {
     font-weight: bold;
 }
 
+.logo {
+border-radius: 10px;
+
+
+
+}
+
 .nav-links {
     list-style: none;
     padding: 0;
